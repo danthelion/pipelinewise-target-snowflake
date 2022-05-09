@@ -365,7 +365,7 @@ class TestDBSync(unittest.TestCase):
             f'in stream "{stream_schema_message["stream"]}"'
         )
         with self.assertRaises(Exception), self.assertLogs(logger=LOGGER_NAME, level="ERROR") as captured_logs:
-            dbsync.load_file(s3_key="dummy-key", count=256, size_bytes=256)
+            dbsync.load_file(s3_key="dummy-key", count=256, size_bytes=256, no_merge=False)
         self.assertIn(expected_msg, captured_logs.output)
 
     @patch('target_snowflake.db_sync.DbSync.query')
@@ -403,7 +403,7 @@ class TestDBSync(unittest.TestCase):
             f'in stream "{stream_schema_message["stream"]}"'
         )
         with self.assertRaises(Exception), self.assertLogs(logger=LOGGER_NAME, level="ERROR") as captured_logs:
-            dbsync.load_file(s3_key="dummy-key", count=256, size_bytes=256)
+            dbsync.load_file(s3_key="dummy-key", count=256, size_bytes=256, no_merge=False)
         self.assertIn(expected_msg, captured_logs.output)
 
     @patch('target_snowflake.db_sync.DbSync.query')
