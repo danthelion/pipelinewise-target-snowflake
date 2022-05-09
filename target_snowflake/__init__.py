@@ -388,7 +388,8 @@ def flush_streams(
             no_compression=config.get('no_compression'),
             delete_rows=config.get('hard_delete'),
             temp_dir=config.get('temp_dir'),
-            archive_load_files=copy.copy(archive_load_files_data.get(stream, None))
+            archive_load_files=copy.copy(archive_load_files_data.get(stream, None)),
+            no_merge=config.get('no_merge'),
         ) for stream in streams_to_flush)
 
     # reset flushed stream records to empty to avoid flushing same records
@@ -418,11 +419,11 @@ def flush_streams(
 
 
 def load_stream_batch(stream, records, row_count, db_sync, no_compression=False, delete_rows=False,
-                      temp_dir=None, archive_load_files=None):
+                      temp_dir=None, archive_load_files=None, no_merge=False):
     """Load one batch of the stream into target table"""
     # Load into snowflake
     if row_count[stream] > 0:
-        flush_records(stream, records, db_sync, temp_dir, no_compression, archive_load_files)
+        flush_records(stream, records, db_sync, temp_dir, no_compression, archive_load_files, no_merge)
 
         # Delete soft-deleted, flagged rows - where _sdc_deleted at is not null
         if delete_rows:
@@ -437,7 +438,8 @@ def flush_records(stream: str,
                   db_sync: DbSync,
                   temp_dir: str = None,
                   no_compression: bool = False,
-                  archive_load_files: Dict = None) -> None:
+                  archive_load_files: Dict = None,
+                  no_merge: bool = False) -> None:
     """
     Takes a list of record messages and loads it into the snowflake target table
 
@@ -450,6 +452,7 @@ def flush_records(stream: str,
         temp_dir: Directory where intermediate temporary files will be created. (Default: OS specific temp directory)
         no_compression: Disable to use compressed files. (Default: False)
         archive_load_files: Data needed for archive load files. (Default: None)
+        no_merge: Don't merge the records in Snowflake even in Primary Key is present.
 
     Returns:
         None
@@ -468,7 +471,7 @@ def flush_records(stream: str,
 
     # Upload to s3 and load into Snowflake
     s3_key = db_sync.put_to_stage(filepath, stream, row_count, temp_dir=temp_dir)
-    db_sync.load_file(s3_key, row_count, size_bytes)
+    db_sync.load_file(s3_key, row_count, size_bytes, no_merge)
 
     # Delete file from local disk
     os.remove(filepath)
